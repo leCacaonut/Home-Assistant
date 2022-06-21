@@ -32,7 +32,6 @@ constexpr int cled1 = 12;
 constexpr int cled2 = 27;
 constexpr int cled3 = 25;
 constexpr unsigned long ledOnTime = 60000; // one minute
-unsigned long ledPreviousTime = 0;
 boolean ledOn = true;
 
 // Sensor
@@ -134,6 +133,11 @@ void setup() {
 
 void loop() {
     unsigned long currentMillis = millis();
+    if (currentMillis - sendLastMillis > ledOnTime) {
+      ledOn = false;
+    } else {
+      ledOn = true;
+    }
     // Enter sensor reading code here
     VL53L0X_RangingMeasurementData_t measure;
     char measurement[6];
@@ -159,7 +163,7 @@ void loop() {
         wifiReconnect();
         wifiLastMillis = currentMillis;
     } else {
-      digitalWrite(sled1, HIGH);
+      digitalWrite(sled1, HIGH & ledOn);
         if (!client.connected()) {
             digitalWrite(sled2, LOW);
             currentMillis = millis();
@@ -167,7 +171,7 @@ void loop() {
                 mqttReconnect();
             }
         } else {
-          digitalWrite(sled2, HIGH);
+          digitalWrite(sled2, HIGH & ledOn);
             // Enter custom code here
             currentMillis = millis();
             if (currentMillis - sendLastMillis > sendInterval) {
