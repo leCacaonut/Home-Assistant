@@ -140,7 +140,6 @@ void loop() {
     }
     // Enter sensor reading code here
     VL53L0X_RangingMeasurementData_t measure;
-    char measurement[6];
     laserSensor.rangingTest(&measure, false); 
     if (measure.RangeStatus != 4) {// phase failures have incorrect data
       // Serial.print("Distance (mm): "); Serial.println(measure.RangeMilliMeter);
@@ -148,12 +147,8 @@ void loop() {
       // Change lights
       distanceIndicator(measure.RangeMilliMeter);
 
-      //Measurement to string
-      itoa(measure.RangeMilliMeter, measurement, 10);
-
     } else {
       Serial.println(" out of range ");
-      strcpy(measurement, "NA");
     }
 
     // End code
@@ -170,7 +165,7 @@ void loop() {
             if (currentMillis - mqttLastMillis > reconnectInterval) {
                 mqttReconnect();
             }
-        } else {
+        } else if (WiFi.status() == WL_CONNECTED) {
           digitalWrite(sled2, HIGH & ledOn);
             // Enter custom code here
             currentMillis = millis();
