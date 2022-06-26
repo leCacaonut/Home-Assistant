@@ -1,7 +1,8 @@
 // Include
 #include <WiFi.h>
 #include <PubSubClient.h>
-#include <Adafruit_VL53L0X.h>
+#include <Wire.h>
+#include <VL53L0X.h>
 
 // Wifi settings
 constexpr char ssid[] = "wyefye";
@@ -25,7 +26,8 @@ unsigned long sendInterval = 1000;
 unsigned long reconnectInterval = 10000;
 
 // Sensor
-Adafruit_VL53L0X laserSensor = Adafruit_VL53L0X();
+VL53L0X laserSensor;
+#define HIGH_ACCURACY
 boolean objectDetected = false;
 boolean previousState = false;
 
@@ -74,28 +76,38 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 void setup() {
     Serial.begin(115200);
+    Wire.begin();
     // Wifi setup
     WiFi.mode(WIFI_STA);
     WiFi.setHostname(hostname);
     // Mqtt setup
     client.setServer(server, port);
     client.setCallback(callback);
+    
     // Sensor
-    if (!laserSensor.begin()) {
+    laserSensor.setTimeout(500);
+    while (!laserSensor.init()) {
         Serial.println("Failed to initialise sensor");
+        delay(1000);
     }
+//    laserSensor.setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 16);
+//    laserSensor.setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 12);
+    // High accuracy
+    laserSensor.setMeasurementTimingBudget(200000);
 }
 
 void loop() {
     unsigned long currentMillis = millis();
     // Enter sensor reading code here
-    VL53L0X_RangingMeasurementData_t measure;
-    laserSensor.rangingTest(&measure, false);
-    if (measure.RangeStatus != 4 && measure.RangeMilliMeter < 1200) {  // phase failures have incorrect data
-         Serial.print("Distance (mm): "); Serial.println(measure.RangeMilliMeter);
-        objectDetected = true;
+//    int reading = 1500;
+    int reading = laserSensor.readRangeSingleMillimeters();
+    if (laserSensor.timeoutOccurred()) Serial.print("LASER TIMEOUT");
+
+    if (reading < 1200) {
+        Serial.print("Distance (mm): "); Serial.println(reading);
+        objectDetected = true;    
     } else {
-        // Serial.println(" out of range ");
+        // Out of range and error
         objectDetected = false;
     }
 
